@@ -2,23 +2,80 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>食品二维码溯源系统</title>
+  <!-- 手机适配关键：禁止缩放、宽度适配屏幕 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>农产品二维码溯源系统</title>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #f4f8fb; color: #222; }
-    .container { max-width: 760px; margin: 0 auto; padding: 20px; }
-    .header { background: #0f766e; color: white; padding: 24px; border-radius: 14px; text-align: center; }
-    .card { background: white; margin-top: 16px; padding: 18px; border-radius: 12px; box-shadow: 0 2px 8px #0001; }
-    .status { display: inline-block; padding: 6px 12px; border-radius: 20px; background: #dcfce7; color: #166534; font-weight: bold; }
-    .timeline li { margin: 8px 0; }
-    .error { color: #b91c1c; font-weight: bold; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "微软雅黑", Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+      padding: 10px;
+    }
+    .container {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+    .header {
+      background: #2E7D32;
+      color: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .header h1 { font-size: 20px; margin-bottom: 5px; }
+    .header p { font-size: 14px; opacity: 0.9; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .product-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .status {
+      display: inline-block;
+      padding: 5px 12px;
+      background: #e8f5e9;
+      color: #2E7D32;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    h2 { font-size: 22px; color: #2E7D32; margin-bottom: 10px; }
+    h3 { font-size: 16px; margin: 15px 0 8px; color: #444; border-left: 4px solid #2E7D32; padding-left: 8px; }
+    p { font-size: 15px; margin: 5px 0; }
+    .timeline { list-style: none; }
+    .timeline li {
+      font-size: 14px;
+      padding: 8px 0;
+      border-bottom: 1px dashed #eee;
+    }
+    .conclusion {
+      background: #f0f9ff;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #0277bd;
+    }
+    .error { color: #d32f2f; font-weight: bold; text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>食品二维码溯源系统</h1>
-      <p>扫码查看食品生产、检测与物流信息</p>
+      <h1>农产品二维码溯源系统</h1>
+      <p>扫码溯源 · 安全放心</p>
     </div>
     <div id="app" class="card">正在加载溯源信息……</div>
   </div>
@@ -30,44 +87,52 @@
 
     async function loadProduct() {
       if (!productId) {
-        app.innerHTML = '<p class="error">未检测到产品编号 id。</p>';
+        app.innerHTML = '<p class="error">未检测到产品编号，请通过二维码访问。</p>';
         return;
       }
 
-      const response = await fetch('products.json');
-      const products = await response.json();
-      const product = products.find(p => p.id === productId);
+      try {
+        const response = await fetch('products.json');
+        const products = await response.json();
+        const product = products.find(p => p.id === productId);
 
-      if (!product) {
-        app.innerHTML = '<p class="error">未找到该产品信息。</p>';
-        return;
+        if (!product) {
+          app.innerHTML = '<p class="error">未找到该农产品信息，请核对二维码。</p>';
+          return;
+        }
+
+        app.innerHTML = `
+          <img src="${product.img}" alt="${product.name}" class="product-img">
+          <h2>${product.name}</h2>
+          <p><span class="status">检测结果：${product.testResult}</span></p>
+
+          <h3>一、基本信息</h3>
+          <p>产品编号：${product.id}</p>
+          <p>生产批次：${product.batch}</p>
+          <p>产地：${product.origin}</p>
+          <p>生产日期：${product.date}</p>
+          <p>保质期：${product.shelfLife}</p>
+          <p>生产企业：${product.producer}</p>
+
+          <h3>二、检测信息</h3>
+          <p>检测机构：${product.testOrg}</p>
+          <p>检测结果：${product.testResult}</p>
+
+          <h3>三、物流时间轴</h3>
+          <ul class="timeline">
+            ${product.logistics.map(item => `<li>${item}</li>`).join('')}
+          </ul>
+
+          <div class="conclusion">
+            溯源结论：${product.conclusion}
+          </div>
+        `;
+      } catch (e) {
+        app.innerHTML = '<p class="error">数据加载失败，请稍后重试。</p>';
       }
-
-      app.innerHTML = `
-        <h2>${product.name}</h2>
-        <p><span class="status">检测结果：${product.testResult}</span></p>
-        <h3>一、基本信息</h3>
-        <p>产品编号：${product.id}</p>
-        <p>生产批次：${product.batch}</p>
-        <p>产地：${product.origin}</p>
-        <p>生产日期：${product.date}</p>
-        <p>保质期：${product.shelfLife}</p>
-        <p>生产企业：${product.producer}</p>
-        <h3>二、检测信息</h3>
-        <p>检测机构：${product.testOrg}</p>
-        <p>检测结果：${product.testResult}</p>
-        <h3>三、物流时间轴</h3>
-        <ul class="timeline">
-          ${product.logistics.map(item => `<li>${item}</li>`).join('')}
-        </ul>
-        <h3>四、溯源结论</h3>
-        <p>${product.conclusion}</p>
-      `;
     }
 
-    loadProduct().catch(() => {
-      app.innerHTML = '<p class="error">数据加载失败，请检查文件。</p>';
-    });
+    loadProduct();
   </script>
 </body>
 </html>
